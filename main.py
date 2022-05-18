@@ -5,7 +5,9 @@ import pandas as pd
 import numpy as np
 import requests as rq
 from bs4 import BeautifulSoup
-import json
+
+from JsonService import JsonService
+from ThemeDataStructure import ThemeDataStructure
 
 
 import webbrowser
@@ -17,6 +19,8 @@ import webbrowser
 # for song in IMS_JSON:
     
 # Method2, using beautiful soup and getting the song lyrics from a list that contains the URL-ending for all the albums
+
+# Globals
 
 OPENING_URL = "https://www.lyrics.com"
 
@@ -41,7 +45,7 @@ albums_lookups = {
 
 album_adjuster = { # For any repeats found in the albums
     "Powerslave": [4],
-    "Somewhere in Time": [7],
+    "Somewhere in Time": [7,9],
     "Brave New World": [1,11],
     "Dance of Death": [1,3,5,7,9,11,12,13,14,15,16],
     "The Final Frontier": [1,2]
@@ -53,6 +57,7 @@ def open_all_sites(): # For convenience, delete after use
     for end_link in albums_lookups.values():
         webbrowser.open(str(OPENING_URL+end_link), new=2)
 
+
 def extract_songs_from_albums(album_number):
     """
     """
@@ -60,7 +65,7 @@ def extract_songs_from_albums(album_number):
     end_link = list(albums_lookups.values())[album_number]
 
     http_request = rq.get(OPENING_URL+end_link)
-    soup = BeautifulSoup(http_request.text, 'html.parser')
+    soup = BeautifulSoup(http_request.text, "html.parser")
     songs = soup.findAll("td", {"class": "tal qx fsl"})
     links = []
     if album not in album_adjuster.keys():
@@ -79,7 +84,6 @@ def extract_songs_from_albums(album_number):
     with conc.ThreadPoolExecutor() as ex:
         ex.map(get_lyrics, links)
 
-
 def get_lyrics(song_page):
     song_http_request = rq.get(song_page)
     soup = BeautifulSoup(song_http_request.text, "html.parser")
@@ -89,19 +93,28 @@ def get_lyrics(song_page):
     print("Completed lyrics for: ", song_name)
     
 
-def createJSON():
-    with open("lyrics.json", mode="w") as write_json:
-        json.dump(song_lyric_dict, write_json)
-
-def loadJSON(): # TODO
-    with open("lyrics.json")
-
 def main():
+
+    json_service = JsonService("lyrics.json")
+
     if input("Do you have a json already downloaded? (y/n) ").lower() == "n":
         with conc.ThreadPoolExecutor() as ex:
             ex.map(extract_songs_from_albums, [i for i in range(0, len(albums_lookups))]) # Map each album for faster lookup
+        json_service.write_dict_to_json(song_lyric_dict)
+    else:
+        data = ThemeDataStructure(json_service.read_json_as_dict())
+        data.create_pandas_object()
 
-        createJSON()
+        # while True:
+        #     ask_song = input("Ask song ")
+        #     songs = data._data_structure["Songs"]
+        #     try:
+        #         index = songs.index(ask_song)
+        #         print(data._data_structure["Lyrics"][index])
+        #     except (ValueError):
+        #         pass
+
+
 
 
 if __name__ == "__main__":
