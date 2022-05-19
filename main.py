@@ -1,22 +1,10 @@
-import os
 import concurrent.futures as conc
 
-import pandas as pd
-import numpy as np
 import requests as rq
 from bs4 import BeautifulSoup
 
 from JsonService import JsonService
 from ThemeDataStructure import ThemeDataStructure
-
-
-import webbrowser
-
-# REQUESTS_URL = "https://gist.githubusercontent.com/mauricius/52d47bb7c4b2ebd47a06/raw/33cf3f7bd61e1881390f0f22e7a642a60c1451b4/iron_maiden_songs.json"
-# IRON_MAIDEN_SONGS = rq.get(REQUESTS_URL)
-# IMS_JSON = IRON_MAIDEN_SONGS.json()
-
-# for song in IMS_JSON:
     
 # Method2, using beautiful soup and getting the song lyrics from a list that contains the URL-ending for all the albums
 
@@ -52,10 +40,6 @@ album_adjuster = { # For any repeats found in the albums
 }
 
 song_lyric_dict = {}
-
-def open_all_sites(): # For convenience, delete after use
-    for end_link in albums_lookups.values():
-        webbrowser.open(str(OPENING_URL+end_link), new=2)
 
 
 def extract_songs_from_albums(album_number):
@@ -96,14 +80,38 @@ def get_lyrics(song_page):
 def main():
 
     json_service = JsonService("lyrics.json")
-
-    if input("Do you have a json already downloaded? (y/n) ").lower() == "n":
+    print("Welcome to finding themes in Iron Maiden music.")
+    if input("Do you have a json file with the song lyrics (data set) already downloaded? (y/n) ").lower() == "n":
         with conc.ThreadPoolExecutor() as ex:
             ex.map(extract_songs_from_albums, [i for i in range(0, len(albums_lookups))]) # Map each album for faster lookup
         json_service.write_dict_to_json(song_lyric_dict)
     else:
-        data = ThemeDataStructure(json_service.read_json_as_dict())
-        data.create_pandas_object()
+        while True:
+            choose_search_type = input("Would you like to search a custom theme or search from a list? (c, l) ").lower()
+            if choose_search_type == "l":
+                data = ThemeDataStructure(json_service.read_json_as_dict())
+                themes = list(ThemeDataStructure.Themes.themes_and_syns)
+                while True:
+                    for i, theme in enumerate(themes):
+                        print(f"{i+1}. {theme.capitalize()}")
+                    num_pick = int(input("Pick a theme you want to analyze: "))
+                    theme_pick = themes[num_pick-1]
+                    df = data.create_pandas_object(theme_pick)
+                    df.drop(df[(df[theme_pick]==0)].index, inplace=True)
+                    print(df)
+            elif choose_search_type == "c":
+                while True:
+                    theme_pick = input("Enter theme: ")
+                    data = ThemeDataStructure(json_service.read_json_as_dict(), custom_theme=theme_pick)
+                    df = data.create_pandas_object(theme_pick)
+                    df.drop(df[(df[theme_pick]==0)].index, inplace=True)
+                    print(df)
+            else:
+                print("Try again.")
+
+
+
+
 
         # while True:
         #     ask_song = input("Ask song ")
@@ -113,9 +121,6 @@ def main():
         #         print(data._data_structure["Lyrics"][index])
         #     except (ValueError):
         #         pass
-
-
-
 
 if __name__ == "__main__":
     main()

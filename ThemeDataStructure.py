@@ -10,13 +10,11 @@ class ThemeDataStructure:
     class Themes:
 
         OPENING_LINK = "https://www.lexico.com/synonyms/"
-        
-        def __init__(self) -> None:
-            self._themes_and_syns = {
+        themes_and_syns = {
                 "despair",
                 "despise",
                 "hope",
-                "peace",
+                "peaceful",
                 "awe-inspiring",
                 "frenzied",
                 "doomed",
@@ -27,8 +25,26 @@ class ThemeDataStructure:
                 "love",
                 "agony",
                 "grief",
-                "wicked"
-            }
+                "evil",
+                "destruction",
+                "fun",
+                "funny",
+                "hopeful",
+                "lonely",
+                "desperate",
+                "suicide",
+                "massacre",
+                "epic",
+                "holy",
+                "serenity"
+            } # For static calling
+
+        def __init__(self, custom_theme=None) -> None:
+            # Will be modified to a dictionary after retrieving synonyms
+            if custom_theme != None:
+                self._themes_and_syns = {custom_theme}
+            else:
+                self._themes_and_syns = ThemeDataStructure.Themes.themes_and_syns 
         
         def set_synonyms(self, syns_dic):
             """Converts the above set to a dictionary with the values being lists containing the synonyms
@@ -41,40 +57,23 @@ class ThemeDataStructure:
             return self._themes_and_syns
             
 
-    def __init__(self, music_dict) -> None:
-        self._themes = ThemeDataStructure.Themes()
+    def __init__(self, music_dict, custom_theme=None) -> None:
+        self._themes = ThemeDataStructure.Themes(custom_theme)
         self._data_structure = {
             "Songs": [song for song in music_dict.keys()],
             "Lyrics": [lyrics for lyrics in music_dict.values()] # Not to be displayed
         }
 
-        # #####
-        # old_set = self._themes.get_syns()
-
         # Add in themes as well as dictacted by the base_themes set in class Themes
         self._themes.set_synonyms(self._get_syns_for_themes(self._themes))
         self._search_themes()
 
-        # i = 0
-        # for theme in old_set:
-        #     try:
-        #         print(f"HELLO {i}", self._themes.get_syns()[theme])
-        #         i += 1
-        #     except KeyError as err:
-        #         raise KeyError(f"{err}: Processing of themes has not completed!")
-
-    # def display_songs(self): # debugging
-    #     self._data_structure["Songs"].sort()
-    #     print(self._data_structure["Songs"])
-               
-
-    def create_pandas_object(self):
+    def create_pandas_object(self, option): # TODO
         df = pd.DataFrame(self._data_structure)
-   #     df.drop(, inplace=True)
-        print(df)
-
-    def display_data_structure(option):
-        pass
+        for key in self._data_structure.keys():
+            if key != option and key != "Songs":
+                df.drop(key, axis=1, inplace=True)
+        return df.sort_values(option)
 
     def _get_syns_for_themes(self, themes_object): # DONE BETA
         """
@@ -92,7 +91,7 @@ class ThemeDataStructure:
             for set in syn_set:
                 syn_string += set.text
             syns = syn_string.split(",")
-            syns = list(map(str.strip, syns))
+            syns = list(map(str.strip, syns))[:10]
             syns.insert(0, theme) # Insert the original word back into the list so the the main theme word can be called.
             return syns
 
@@ -106,7 +105,7 @@ class ThemeDataStructure:
         
         return theme_syn_dict
 
-    def _search_themes(self):
+    def _search_themes(self): # DONE BETA
             def populate_theme_occurances(main_theme, syns):
                 theme_occurence_for_each_song = []
                 for song_lyrics in self._data_structure["Lyrics"]:

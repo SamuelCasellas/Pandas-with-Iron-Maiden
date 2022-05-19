@@ -4,10 +4,11 @@ Here I will dive into the pandas library in Python to analyze the underlying the
 # My notes
 
 - Two ways to find the themes on the music
-- Use a library like sentiment or another one I find
+
 - I was able to download the songs faster using threads available from the concurrent.futures library
 
-https://www.youtube.com/watch?v=r8U4s_WAAg8 -> for figuring out the easiest site to scrape the lyrics from
+
+ -> for figuring out the easiest site to scrape the lyrics from
 
 
 # Classes
@@ -28,14 +29,13 @@ https://www.youtube.com/watch?v=r8U4s_WAAg8 -> for figuring out the easiest site
 
 # Overview
 
-{Important!  Do not say in this section that this is college assignment.  Talk about what you are trying to accomplish as a software engineer to further your learning.}
+Much of software engineering involves large pieces of data that needs analyzing. 
+The pandas library in python provides an easy-to-use functions for data analysis. 
+I also discovered the robustness of BeautifulSoup for parsing through the document object model (or DOM).
 
-{Provide a description of the data set that you are analyzing.  Include the link of where you obtained the data.}
 
-Here I analyze Iron Maidens music and try to find the repeated occurences of common themes:
--
-
-{Describe your purpose for writing this software to analyze the data.}
+Here I analyze Iron Maidens music and try to find and sort songs for the occurences of various themes, 
+either ones that are listed for the user to pick from or custom ones the user provides. 
 
 {Provide a link to your YouTube demonstration.  It should be a 4-5 minute demo of the data set, the questions and answers, the code running and a walkthrough of the code.}
 
@@ -43,23 +43,38 @@ Here I analyze Iron Maidens music and try to find the repeated occurences of com
 
 # Data Analysis Results
 
-{List the questions and the answers you found by doing this analysis.}
+Technical questions:
+Question: How do I find themes in lyrics?
+Brainstorming: Use a library like sentiment or another one I find, or...
+Hypothesis: Generate a list of general themes and gather synonyms that relate to that theme.
+Iterate through each theme and 
+
+Questions relating to the dataset:
+1. Which songs contain the most evil themes?
+2. Which songs contain the most good themes?
+
+Third question:
+3. Which songs contain the most references to \[Theme]?
 
 # Development Environment
 
-{Describe the tools that you used to develop the software}
+Programming language: Python
 
-{Describe the programming language that you used and any libraries.}
+Libraries used:
+- Pandas (data analysis)
+- Requests and BeautifulSoup (scraping lyrics.com for lyrics to songs and parsing through the dom for applicable tag names and classes)
+- concurrent (creating and mapping threads for fast retrieval of lyrics or synonyms of the themes)
+- Json (for storing and retrieving the data set)
+
 
 # Useful Websites
 
-{Make a list of websites that you found helpful in this project}
-* [Web Site Name](http://url.link.goes.here)
-* [Web Site Name](http://url.link.goes.here)
+* [Kaggle.com - The dataset that gave me inspiration](https://www.kaggle.com/code/gabrieldu69/ironmaiden-songs-analysis)
+* [Free Code Camp - How to use the drop method for dataframes](https://www.freecodecamp.org/news/drop-list-of-rows-from-pandas-dataframe/)
+* [YouTube - Finding a good music site to scrape lyrics from](https://www.youtube.com/watch?v=r8U4s_WAAg8)
 
 # Future Work
 
-{Make a list of things that you need to fix, improve, and add in the future.}
 * Item 1
 * Item 2
 * Item 3
