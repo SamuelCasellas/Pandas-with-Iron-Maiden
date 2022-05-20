@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # music lyrics json file
-lyrics.json
+*.json

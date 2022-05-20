@@ -5,15 +5,13 @@ from bs4 import BeautifulSoup
 
 from JsonService import JsonService
 from ThemeDataStructure import ThemeDataStructure
-    
-# Method2, using beautiful soup and getting the song lyrics from a list that contains the URL-ending for all the albums
 
 # Globals
 
 OPENING_URL = "https://www.lyrics.com"
 
 albums_lookups = {
-        "Iron Maiden": "/album/9908/Iron-Maiden", # Has an 
+        "Iron Maiden": "/album/9908/Iron-Maiden",
         "Killers": "/album/9909/Killers",
         "The Number of the Beast": "/album/584216/The-Number-of-the-Beast-%5BLimited-Edition%5D",
         "Piece of Mind": "/album/9912/Piece-of-Mind",
@@ -41,32 +39,57 @@ album_adjuster = { # For any repeats found in the albums
 
 song_lyric_dict = {}
 
-
 def extract_songs_from_albums(album_number):
+    """Manage each album and make appropriate adjustments for extracting each song link provided in the table 
+    (format can vary from page to page). Thread each album with the concurrent.futures module for faster lookup.
     """
-    """
+    # These albums on the website include the cd number and must be accounted for
+    cd_albums = {"Virtual XI", "Brave New World", "Dance of Death", "Book of Souls"}
+
     album = list(albums_lookups.keys())[album_number]
     end_link = list(albums_lookups.values())[album_number]
 
     http_request = rq.get(OPENING_URL+end_link)
     soup = BeautifulSoup(http_request.text, "html.parser")
     songs = soup.findAll("td", {"class": "tal qx fsl"})
-    links = []
-    if album not in album_adjuster.keys():
-        for song in songs[1:][::2]: # omit the track number
-            try:
-                links.append(OPENING_URL + song.a.attrs["href"])
-            except AttributeError: # This is if the song is an instrumental.
-                pass
+    
+    # These albums include a column for cd #, which of course we don't want.
+    if album in cd_albums:
+        starting_number = 2 
+        # Jump count incremented yet again since for all associated pages 
+        # the elements for the track length now have the same class name.
+        jump_count = 4 
+        # Strangely, this is the only album that includes a column including artist name.
+        # Jump over this column as well.
+        if album == "Virtual XI":
+            jump_count += 1
     else:
-        for i, song in enumerate(songs[1:][::2]): # omit the track number
+        starting_number = 1
+        jump_count = 2
+
+    song_links = []
+    # For albums with no repeated songs
+    if album not in album_adjuster.keys():
+        # omit the track number
+        for song in songs[starting_number:][::jump_count]: 
+            try:
+                song_links.append(OPENING_URL + song.a.attrs["href"])
+            # Song is an instrumental
+            except AttributeError: 
+                pass
+    # For albums with repeated songs
+    else:
+        # omit the track number
+        for i, song in enumerate(songs[starting_number:][::jump_count]): 
             try:
                 if i not in album_adjuster[album]:
-                    links.append(OPENING_URL + song.a.attrs["href"])
-            except AttributeError: # This is if the song is an instrumental.
+                    song_links.append(OPENING_URL + song.a.attrs["href"])
+            # Song is an instrumental
+            except AttributeError:
                 pass
+    # Map each of the album's songs for faster lookup.
     with conc.ThreadPoolExecutor() as ex:
-        ex.map(get_lyrics, links)
+        ex.map(get_lyrics, song_links)
 
 def get_lyrics(song_page):
     song_http_request = rq.get(song_page)
@@ -78,49 +101,83 @@ def get_lyrics(song_page):
     
 
 def main():
-
     json_service = JsonService("lyrics.json")
-    print("Welcome to finding themes in Iron Maiden music.")
-    if input("Do you have a json file with the song lyrics (data set) already downloaded? (y/n) ").lower() == "n":
-        with conc.ThreadPoolExecutor() as ex:
-            ex.map(extract_songs_from_albums, [i for i in range(0, len(albums_lookups))]) # Map each album for faster lookup
-        json_service.write_dict_to_json(song_lyric_dict)
-    else:
-        while True:
-            choose_search_type = input("Would you like to search a custom theme or search from a list? (c, l) ").lower()
-            if choose_search_type == "l":
-                data = ThemeDataStructure(json_service.read_json_as_dict())
-                themes = list(ThemeDataStructure.Themes.themes_and_syns)
+
+    print("\n"*50)
+    while True:
+        print("Welcome to finding themes in Iron Maiden music.")
+        verify_json = input("Do you have a json file with the song lyrics (data set) already downloaded? (y/n) ").lower()
+        match verify_json:
+            case "n":
+                # Map each album for faster lookup
+                with conc.ThreadPoolExecutor() as ex:
+                    ex.map(extract_songs_from_albums, [i for i in range(0, len(albums_lookups))])
+                json_service.write_dict_to_json(song_lyric_dict)
+                print("Lyric retrieval completed.")
+            case "y":
+                # Main loop: 
+                # repeat theme searches
                 while True:
-                    for i, theme in enumerate(themes):
-                        print(f"{i+1}. {theme.capitalize()}")
-                    num_pick = int(input("Pick a theme you want to analyze: "))
-                    theme_pick = themes[num_pick-1]
-                    df = data.create_pandas_object(theme_pick)
-                    df.drop(df[(df[theme_pick]==0)].index, inplace=True)
-                    print(df)
-            elif choose_search_type == "c":
-                while True:
-                    theme_pick = input("Enter theme: ")
-                    data = ThemeDataStructure(json_service.read_json_as_dict(), custom_theme=theme_pick)
-                    df = data.create_pandas_object(theme_pick)
-                    df.drop(df[(df[theme_pick]==0)].index, inplace=True)
-                    print(df)
-            else:
-                print("Try again.")
+                    choose_search_type = input("Would you like to search a Custom theme or search from a List of options?\n\
+You can also measure Good and Bad elements for each song\n(select from c, l, g, b) -> ").lower()
+                    match choose_search_type:
+                        case "l":
+                            data = ThemeDataStructure(json_service.read_json_as_dict())
+                            themes = list(ThemeDataStructure.Themes.themes_and_syns)
+                            while True:
+                                for i, theme in enumerate(themes):
+                                    print(f"{i+1}. {theme.capitalize()}")
+                                num_pick = int(input("\nPick a theme you want to analyze: "))
+                                try:
+                                    theme_pick = themes[num_pick-1]
+                                except IndexError:
+                                    print("\nNumber mismatch.\n")
+                                    break
+                                
+                                # Create a data frame according to the theme chosen
+                                df = data.create_pandas_object(theme_pick)
 
+                                # Drop any songs that had no matches
+                                df.drop(df[(df[theme_pick]==0)].index, inplace=True) 
+                                print(df, "\n")
 
+                        case "c":
+                            while True:
+                                theme_pick = input("\nEnter theme: ")
+                                data = ThemeDataStructure(json_service.read_json_as_dict(), custom_theme={theme_pick})
+                                df = data.create_pandas_object(theme_pick)
+                                
+                                try:
+                                    # Drop any songs that had no matches
+                                    df.drop(df[(df[theme_pick]==0)].index, inplace=True)
+                                    if len(df) != 0:
+                                        print(df)
+                                    else:
+                                        print("\nNo references found.")
+                                # if NoneType due to a bad search.
+                                except AttributeError: 
+                                    pass
 
+                        case "g":
+                            data = ThemeDataStructure(json_service.read_json_as_dict(), custom_theme=ThemeDataStructure.Themes.good_vibes)
+                            df = data.create_pandas_object("good")
 
+                            # Drop any songs that had no matches
+                            df.drop(df[(df["good"]==0)].index, inplace=True)
+                            print(df, "\n")
+                            print("Total good theme references: {}".format(df["good"].sum()))
+                        case "b":
+                            data = ThemeDataStructure(json_service.read_json_as_dict(), custom_theme=ThemeDataStructure.Themes.bad_vibes)
+                            df = data.create_pandas_object("bad")
 
-        # while True:
-        #     ask_song = input("Ask song ")
-        #     songs = data._data_structure["Songs"]
-        #     try:
-        #         index = songs.index(ask_song)
-        #         print(data._data_structure["Lyrics"][index])
-        #     except (ValueError):
-        #         pass
-
+                            # Drop any songs that had no matches
+                            df.drop(df[(df["bad"]==0)].index, inplace=True)
+                            print(df, "\n")
+                            print("Total bad theme references: {}".format(df["bad"].sum()))
+                        case _:
+                            print("\nTry again.\n")
+            case _:
+                print("\nTry again.\n")
+                
 if __name__ == "__main__":
     main()
